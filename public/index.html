@@ -790,6 +790,7 @@ function teacherView(){
   var P=ids.length;
   if(!S.sel)S.sel={group:'plan',type:'all',n:1,mode:'single'};
   var batch=isBatch();
+  var lite=!!(TABS()&&viewBo()&&!S.showAll),tg=TABS()&&viewBo()?'<button class="btn" data-act="liteToggle">'+(S.showAll?'Thu gọn':'☰ Công cụ khác')+'</button>':'';
   var tabRem=TABS()?qs.slice(r).filter(function(x){return tabOf(x)===curTab();}).length:(N-r);
   var tabOpen=TABS()?qs.slice(0,r).filter(function(x){return tabOf(x)===curTab();}).length:r;
   h+='<div class="card"><div class="row">'+
@@ -799,19 +800,19 @@ function teacherView(){
       '<button class="btn primary" data-act="openNext"'+(tabRem?'':' disabled')+'>Mở 1 câu ngẫu nhiên</button>'+
       '<button class="btn" data-act="openSession" data-n="5"'+(tabRem?'':' disabled')+'>Mở 5 câu ngẫu nhiên</button>')+
     (batch?'<button class="btn primary" data-act="closeAll"'+(k>=r?' disabled':'')+'>Đóng tất cả &amp; hiện đáp án</button>':'<button class="btn" data-act="closeNext"'+(k>=r?' disabled':'')+'>Đóng câu '+(TABS()&&qs[k]?ordTab(qs,k):k+1)+' &amp; hiện đáp án</button>'+(r-k>1?'<button class="btn primary" data-act="closeAll">Đóng cả '+(r-k)+' câu đang mở &amp; hiện đáp án</button>':''))+
-    '<button class="btn" data-act="openAll"'+(r>=N?' disabled':'')+'>Mở tất cả</button>'+
+    (lite?'':'<button class="btn" data-act="openAll"'+(r>=N?' disabled':'')+'>Mở tất cả</button>'+
     (S.confirmReset?
       '<button class="btn danger" data-act="reset2">Xác nhận xoá hết kết quả</button><button class="btn" data-act="cancel">Huỷ</button>':
       '<button class="btn danger" data-act="reset">Làm lại từ đầu</button>')+
     '<button class="btn" data-act="sum"'+(k?'':' disabled')+'>'+(sumOn()?'Ẩn tổng kết':'Xem tổng kết')+'</button>'+
     '<button class="btn" data-act="ans">'+(S.showAns?'Ẩn đáp án':'Hiện đáp án (chỉ giáo viên)')+'</button>'+'<button class="btn" data-act="qr">Mã QR</button><button class="btn" data-act="qt">Điểm quá trình</button>'+'<button class="btn" data-act="csv">Tải kết quả (.csv)</button>'+
-    '<button class="btn" data-act="optsToggle">'+(S.showOpts?'Ẩn cài đặt thêm':'Cài đặt thêm')+'</button></div><div class="meta"><span>'+esc(viewDe()?'Đề ôn trộn ngẫu nhiên'+(cfgSet().deSo?' · đã soạn '+cfgSet().deSo+' đề':''):curSess())+' · đã mở <b class="num">'+r+'/'+N+'</b> câu · đã đóng <b class="num">'+k+'</b></span><span>Học sinh vào lớp: <b class="num">'+P+(cfgSet().cap>0?'/'+cfgSet().cap:'')+'</b>'+(cfgSet().locked?' · đã khóa':'')+'</span></div>'+(TABS()?viewSeg():'')+printRow()+'</div>';
-  h+=qtTeacherCards(r);
+    '<button class="btn" data-act="optsToggle">'+(S.showOpts?'Ẩn cài đặt thêm':'Cài đặt thêm')+'</button>')+tg+'</div><div class="meta"><span>'+esc(viewDe()?'Đề ôn trộn ngẫu nhiên'+(cfgSet().deSo?' · đã soạn '+cfgSet().deSo+' đề':''):curSess())+' · đã mở <b class="num">'+r+'/'+N+'</b> câu · đã đóng <b class="num">'+k+'</b></span><span>Học sinh vào lớp: <b class="num">'+P+(cfgSet().cap>0?'/'+cfgSet().cap:'')+'</b>'+(cfgSet().locked?' · đã khóa':'')+'</span></div>'+(lite?'':(TABS()?viewSeg():'')+printRow())+'</div>';
+  if(!lite){h+=qtTeacherCards(r);
   h+=ringCard(S.config.progress);
-  if(N)h+=tabBar(qs,r);
+  if(N)h+=tabBar(qs,r);}
   if(N&&viewDe())h+=dePanel(qs,r,k);
   if(N&&!viewDe()&&TABS()&&!viewBo())h+='<div class="kv" style="margin:6px 0 10px">Đang mở theo <b>dạng câu</b>: mỗi lần bấm, phòng rút ngẫu nhiên trong toàn chương các câu thuộc tab đang chọn (câu chùm mở cả cặp).</div>';
-  if(N&&S.showOpts){h+=openPanel(qs,r,k);h+=roomPanel();}
+  if(N&&S.showOpts&&!lite){h+=openPanel(qs,r,k);h+=roomPanel();}
   var hasV=qs.some(isV),tt=hasV&&S.ttab==='essay';
   if(hasV)h+='<div class="seg2"><button class="'+(tt?'':'on')+'" data-act="ttab" data-t="main">Câu hỏi làm bài</button><button class="'+(tt?'on':'')+'" data-act="ttab" data-t="essay">Tự luận (chỉ xem)</button></div>';
   if(tt)return h+essayTeacher(qs,r,k);
@@ -1460,6 +1461,7 @@ function act(d){
   else if(a==='word'){if(!S.wordBusy)wordDownload(d.src);}
   else if(a==='selgroup'){S.sel.group=d.g;render();}
   else if(a==='nq'){S.sel.n=d.n==='all'?'all':(+d.n||1);render();}
+  else if(a==='liteToggle'){S.showAll=!S.showAll;render();}
   else if(a==='optsToggle'){S.showOpts=!S.showOpts;try{localStorage.setItem('showOpts',S.showOpts?'1':'0');}catch(x){}render();}
   else if(a==='focus'){S.focusQ=+d.i;render();}
   else if(a==='reset'){S.confirmReset=true;render();}
