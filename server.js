@@ -126,6 +126,12 @@ function isLocked() { return !!state.locked || (state.cap > 0 && joined() >= sta
 // tiến độ nộp bài của câu (hoặc lô) đang mở, dùng cho vòng tròn phần trăm và chế độ tự đóng
 function progressInfo() {
   if (!state.auto || state.closed >= state.released) return null;
+  const rr = state.run;
+  if (rr && rr.phase === 'redo' && Array.isArray(rr.redoSet) && state.mode !== 'batch' && state.order[state.closed] === rr.cur) {
+    const set = rr.redoSet.filter(sid => state.students[sid]);
+    const ans = set.filter(sid => state.students[sid].answers[rr.cur] != null).length;
+    return { answered: ans, needed: Math.max(1, Math.ceil(state.pct * set.length / 100)), classSize: set.length, pct: state.pct, scope: 'question', index: state.closed };
+  }
   const size = classSize(), need = Math.max(1, Math.ceil(state.pct * size / 100));
   const studs = Object.values(state.students);
   let answered, scope;
@@ -151,8 +157,68 @@ function autoCheck() {
   }
   return did;
 }
+// ---- Tự chạy nhóm: tự đóng câu theo %, đợi vài giây, mở câu kế; hết nhóm thì mở lại các câu còn em sai cho đến khi đúng hết ----
+state.runDelay = Math.max(2, Math.min(120, parseInt(state.runDelay, 10) || 10));
+function stillWrong(s, id, q) {
+  const a = s.answers[id];
+  if (a != null) return grade(q, a, KEY.answers[id]) === false;
+  return !!(s.prev && s.prev[id]);
+}
+function runTodo(g) {   // câu của nhóm đã đóng mà vẫn còn em sai
+  const out = [];
+  for (let i = 0; i < state.closed; i++) {
+    const id = state.order[i], q = BYID[id];
+    if (q.set === 'mix' || String(q.group) !== String(g) || q.type === 'view' || KEY.answers[id] == null) continue;
+    if (Object.values(state.students).some(s => stillWrong(s, id, q))) out.push(id);
+  }
+  return out;
+}
+function runFresh(g) {   // câu của nhóm chưa mở (bỏ câu chỉ xem)
+  return state.order.slice(state.released).filter(id => { const q = BYID[id]; return q.set !== 'mix' && String(q.group) === String(g) && q.type !== 'view'; });
+}
+function runOut() {
+  const r = state.run; if (!r) return null;
+  return { group: String(r.group), phase: r.phase, done: !!r.done, cur: r.cur || null, left: runFresh(r.group).length, wrong: runTodo(r.group).length,
+    nextIn: r.nextAt != null ? Math.max(0, Math.ceil((r.nextAt - Date.now()) / 1000)) : null };
+}
+function runTick() {
+  const r = state.run; if (!r || r.done) return false;
+  state.auto = true; state.mode = 'single';
+  if (state.closed < state.released) { r.nextAt = null; return false; }   // đang có câu mở: chờ tự đóng theo %
+  const now = Date.now();
+  if (r.nextAt == null) {
+    const last = state.order[state.released - 1];
+    r.nextAt = (r.fresh || state.released === 0) ? now : ((state.closedAt[last] || now) + state.runDelay * 1000);
+    r.fresh = false;
+  }
+  if (now < r.nextAt) return false;
+  r.nextAt = null;
+  const g = String(r.group), fresh = runFresh(g);
+  if (fresh.length) {
+    const sel = withPairs([fresh[0]], 1, fresh), pick = new Set(sel), tail = state.order.slice(state.released);
+    state.order = state.order.slice(0, state.released).concat(sel, tail.filter(id => !pick.has(id)));
+    state.released += sel.length; r.phase = 'main'; r.cur = sel[0]; r.redoSet = null;
+    return true;
+  }
+  const todo = runTodo(g);
+  if (!todo.length) { r.done = true; r.phase = 'done'; r.cur = null; r.redoSet = null; return true; }
+  r.seen = r.seen || {}; r.cnt = r.cnt || 0;
+  todo.sort((a, b) => (r.seen[a] || 0) - (r.seen[b] || 0));
+  const id = todo[0], q = BYID[id], set = [];
+  for (const [sid, s] of Object.entries(state.students)) {
+    if (!stillWrong(s, id, q)) continue;
+    set.push(sid);
+    if (s.answers[id] != null) { s.prev = s.prev || {}; s.prev[id] = (s.prev[id] || 0) + 1; delete s.answers[id]; if (s.at) delete s.at[id]; }
+  }
+  const i = state.order.indexOf(id);   // câu này đang ở vùng đã đóng: đưa về cuối vùng đã mở thành câu đang mở
+  state.order.splice(i, 1); state.released--; state.closed--;
+  state.order.splice(state.released, 0, id); state.released++;
+  delete state.closedAt[id];
+  r.phase = 'redo'; r.cur = id; r.redoSet = set; r.seen[id] = ++r.cnt;
+  return true;
+}
 function settingsOut() {
-  return { cap: state.cap, locked: isLocked(), manualLock: state.locked, auto: state.auto, pct: state.pct, mode: state.mode, view: state.view, deSo: state.deSo, deCau: (state.drawn || []).length, deThieu: state.deThieu || [], joined: joined(), classSize: classSize() };
+  return { cap: state.cap, locked: isLocked(), manualLock: state.locked, auto: state.auto, pct: state.pct, mode: state.mode, view: state.view, run: runOut(), runDelay: state.runDelay, deSo: state.deSo, deCau: (state.drawn || []).length, deThieu: state.deThieu || [], joined: joined(), classSize: classSize() };
 }
 let saveTimer = null;
 function save() {
@@ -242,7 +308,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && p === '/api/state') {
       const sid = url.searchParams.get('sid') || '';
       const st = state.students[sid];
-      return send(res, 200, { v: VER, config: publicConfig(), reveal: reveal(), mine: st ? { name: st.name, qt: QT.mine(state, st), answers: st.answers, late: lateIds(st) } : null });
+      return send(res, 200, { v: VER, config: publicConfig(), reveal: reveal(), mine: st ? { name: st.name, qt: QT.mine(state, st), answers: st.answers, late: lateIds(st), redo: Object.keys(st.redo || {}) } : null });
     }
     if (req.method === 'POST' && p === '/api/join') {
       const b = await readJson(req);
@@ -272,9 +338,11 @@ const server = http.createServer(async (req, res) => {
       // câu đã đóng: vẫn nhận; quá thời gian trễ cho phép thì ghi là muộn (không tính điểm)
       const now = Date.now(), ca = state.closedAt[b.qid], late = i < state.closed && !(ca && now <= ca + LATE_GRACE_MS);
       st.answers[b.qid] = v; st.at = st.at || {}; st.at[b.qid] = now;
-      if (late) { st.late = st.late || {}; st.late[b.qid] = 1; } else if (st.late) delete st.late[b.qid];
+      const redoNow = !!(state.run && state.run.phase === 'redo' && state.run.cur === b.qid);   // làm lại câu sai trong chế độ tự chạy: chấm đúng/sai nhưng không tính điểm
+      if (late || redoNow) { st.late = st.late || {}; st.late[b.qid] = 1; }
+      if (redoNow) { st.redo = st.redo || {}; st.redo[b.qid] = 1; } else if (st.late) delete st.late[b.qid];
       autoCheck(); save();
-      return send(res, 200, { ok: true, late });
+      return send(res, 200, { ok: true, late: late || redoNow });
     }
 
     // giáo viên
@@ -306,11 +374,21 @@ const server = http.createServer(async (req, res) => {
         else if (a === 'openAll') doOpen('plan', 'all', Infinity);
         else if (a === 'closeNext') { if (state.closed < state.released) setClosed(state.closed + 1); }
         else if (a === 'closeAll') setClosed(state.released);
+        else if (a === 'runStart') {
+          const g = String(b.group || '');
+          if (!/^\d+$/.test(g) || !CFG.groups[g]) return send(res, 400, { error: 'Chọn một nhóm câu để chạy tự động' });
+          if (b.delay !== undefined) state.runDelay = Math.max(2, Math.min(120, parseInt(b.delay, 10) || 10));
+          if (b.pct !== undefined) state.pct = Math.max(50, Math.min(100, parseInt(b.pct, 10) || 90));
+          state.run = { group: g, phase: 'main', fresh: true, nextAt: null, done: false, cnt: 0, seen: {} };
+          state.auto = true; state.mode = 'single';
+        }
+        else if (a === 'runStop') state.run = null;
         else if (a === 'settings') {
           if (b.cap !== undefined) state.cap = Math.max(0, Math.min(MAX_STUDENTS, parseInt(b.cap, 10) || 0));
           if (b.locked !== undefined) state.locked = !!b.locked;
           if (b.mode !== undefined) state.mode = b.mode === 'batch' ? 'batch' : 'single';
           if (b.auto !== undefined) state.auto = !!b.auto;
+          if (b.runDelay !== undefined) state.runDelay = Math.max(2, Math.min(120, parseInt(b.runDelay, 10) || 10));
           if (b.view !== undefined) state.view = VIEWS.includes(b.view) ? b.view : 'dang';
           if (b.pct !== undefined) state.pct = Math.max(50, Math.min(100, parseInt(b.pct, 10) || 90));
           autoCheck();
@@ -325,9 +403,10 @@ const server = http.createServer(async (req, res) => {
           state.released += d.ids.length; state.mode = 'batch'; state.drawn = d.ids; state.deSo++;
           state.deThieu = d.short;
         }
-        else if (a === 'reset') { const hist = QT.finish(state); state = { released: 0, closed: 0, order: DEFAULT_ORDER.slice(), students: {}, cap: state.cap, locked: false, mode: state.mode, auto: state.auto, pct: state.pct, autoSeq: state.autoSeq, view: state.view, deSo: 0, closedAt: {} }; QT.ensure(state, hist); }
+        else if (a === 'reset') { const hist = QT.finish(state); state = { released: 0, closed: 0, order: DEFAULT_ORDER.slice(), students: {}, cap: state.cap, locked: false, mode: state.mode, auto: state.auto, pct: state.pct, runDelay: state.runDelay, autoSeq: state.autoSeq, view: state.view, deSo: 0, closedAt: {} }; QT.ensure(state, hist); }
         else return send(res, 400, { error: 'Lệnh không hợp lệ' });
         save();
+        runTick();
         return send(res, 200, { released: state.released, closed: state.closed });
       }
       // Xuất Word (.docx) nguyên văn từ file nguồn: src = open (câu đang mở) | released (mọi câu đã mở) | group (cả một nhóm/buổi, g = số nhóm)
@@ -403,3 +482,5 @@ server.listen(PORT, () => {
   console.log('  Mat khau giao vien: ' + (process.env.TEACHER_PASS ? '(da dat)' : TEACHER_PASS + '   <- nen dat bien TEACHER_PASS'));
   for (const list of Object.values(os.networkInterfaces())) for (const n of list || []) if (n.family === 'IPv4' && !n.internal) console.log('  Cung Wi-Fi:  http://' + n.address + ':' + PORT + '/');
 });
+// tự chạy nhóm: kiểm tra mỗi giây (đóng câu theo %, hết giờ chờ thì mở câu kế hoặc mở lại câu sai)
+setInterval(() => { try { if (state.run && !state.run.done) { autoCheck(); if (runTick()) save(); } } catch (e) {} }, 1000);

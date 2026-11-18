@@ -420,6 +420,25 @@ function printPaper(src){
   if(!left)go();else{for(var t=0;t<imgs.length;t++){if(imgs[t].complete){if(--left===0)go();}else imgs[t].onload=imgs[t].onerror=function(){if(--left===0)go();};}setTimeout(go,4000);}
 }
 window.addEventListener('afterprint',function(){document.body.classList.remove('pmode');});
+/* Tự chạy nhóm: máy chủ tự đóng câu theo %, đợi vài giây rồi mở câu kế; hết nhóm thì mở lại các câu còn em sai cho đến khi đúng hết */
+function runCard(){
+  if(!(TABS()&&viewBo()))return '';
+  var s=cfgSet(),R=s.run,g=curGroup(),G=(S.config&&S.config.groups)||{};
+  var h='<div class="card"><h2>Tự chạy nhóm câu</h2>'+
+    '<div class="kv">Học sinh làm bài; khi đủ % đã gửi, câu tự đóng và hiện đáp án, sau số giây đặt dưới đây tự mở câu kế. Hết nhóm, phòng mở lại từng câu còn em làm sai (em sai làm lại, bài làm lại chấm đúng/sai nhưng không tính điểm), lặp đến khi cả lớp đúng hết thì dừng và chờ chuyển nhóm.</div>'+
+    '<div class="ctl" style="margin-top:10px"><label>Chuyển câu mới sau (giây)<input id="run-delay" type="number" min="2" max="120" inputmode="numeric" data-in="rundelay" value="'+esc(dv('rundelay',s.runDelay||10))+'"></label>'+
+    '<label>Đóng câu khi đủ (%) đã gửi<input id="run-pct" type="number" min="50" max="100" inputmode="numeric" data-in="runpct" value="'+esc(dv('runpct',s.pct||90))+'"></label>'+
+    (R&&!R.done?'<button class="btn danger" data-act="runStop">Dừng tự chạy</button>':'<button class="btn primary" data-act="runStart"'+(g?'':' disabled')+'>Bắt đầu tự chạy'+(g?': '+esc(shortG(g)):'')+'</button>')+'</div>';
+  if(R){
+    var nm=esc(shortG(R.group)),st;
+    if(R.done)st='<b>Cả lớp đã đúng hết '+nm+'.</b> Đã dừng, chờ thầy cô chọn nhóm khác rồi bấm “Bắt đầu tự chạy”.';
+    else if(R.phase==='redo')st='Đang <b>ôn lại câu sai</b> của '+nm+': còn <b class="num">'+R.wrong+'</b> câu có em chưa đúng'+(R.cur?' (đang mở '+esc(R.cur)+')':'')+'.';
+    else st='Đang chạy '+nm+': còn <b class="num">'+R.left+'</b> câu chưa mở'+(R.wrong?', <b class="num">'+R.wrong+'</b> câu có em sai (sẽ ôn lại sau khi hết nhóm)':'')+'.';
+    if(!R.done&&R.nextIn!=null)st+=' <b>Câu kế sau '+R.nextIn+' giây.</b>';
+    h+='<div class="kv" style="margin-top:10px">'+st+'</div>';
+  }
+  return h+'</div>';
+}
 function viewDe(){return !!(S.config&&S.config.settings&&S.config.settings.view==='de');}
 function viewSeg(){var n=boTabs().length,bo=viewBo(),de=viewDe(),mx=S.config&&S.config.matrix;
   return '<div class="row" style="margin-top:10px;align-items:center"><span class="kv">Mở câu theo:</span><div class="seg2" style="margin:0">'+
@@ -661,12 +680,12 @@ function studentQ(q,i,closed,ans){
     return '<section class="card q"><div class="qh"><span class="qn">Câu '+(i+1)+'</span><span class="tag off">Chỉ để xem</span></div>'+qBody(q)+
       (closed?(vx?'<div class="kv"><b>Lời giải</b><br>'+fmt(vx)+'</div>':''):'<div class="kv">Câu này chỉ để xem, không nộp bài. Lời giải hiện khi giáo viên đóng câu.</div>')+'</section>';
   }
-  var id=q.id,sent=ans!=null,d=S.draft[id],late=isLate(S.mine,id);
+  var id=q.id,sent=ans!=null,d=S.draft[id],late=isLate(S.mine,id),redo=((S.mine&&S.mine.redo)||[]).indexOf(id)>=0;
   var h='<section class="card q"><div class="qh"><span class="qn">Câu '+(i+1)+'</span>'+(closed?'':qtRing(qtSentS(id),qtSize()));
   if(closed&&sent){
     var g=grade(q,ans,keyFor(id));
-    h+='<span class="tag '+(g===true?'ok':g===false?'bad':'off')+'">'+(g===true?'Đúng':g===false?'Sai':'Chưa làm')+(late?' · gửi muộn':'')+'</span></div>'+qBody(q)+optsView(q,ans,keyFor(id));
-    if(late)h+='<div class="kv">Em gửi sau khi câu đã đóng: vẫn chấm đúng/sai nhưng không tính điểm.</div>';
+    h+='<span class="tag '+(g===true?'ok':g===false?'bad':'off')+'">'+(g===true?'Đúng':g===false?'Sai':'Chưa làm')+(redo?' · làm lại':late?' · gửi muộn':'')+'</span></div>'+qBody(q)+optsView(q,ans,keyFor(id));
+    if(redo)h+='<div class="kv">Em làm lại câu này: vẫn chấm đúng/sai nhưng không tính điểm.</div>';else if(late)h+='<div class="kv">Em gửi sau khi câu đã đóng: vẫn chấm đúng/sai nhưng không tính điểm.</div>';
     var kx=keyFor(id);
     h+='<div class="res '+(g===true?'ok':g===false?'bad':'off')+'">Em chọn: <b>'+esc(ansText(q,ans))+'</b></div>';
     if(g!==true)h+='<div class="kv">Đáp án: <b>'+esc(ansText(q,kx))+'</b></div>';
@@ -811,6 +830,7 @@ function teacherView(){
   
   }
   if(N)h+=tabBar(qs,r);
+  h+=runCard();
   h+=ringCard(S.config.progress);
   if(N&&viewDe())h+=dePanel(qs,r,k);
   if(N&&!lite&&!viewDe()&&TABS()&&!viewBo())h+='<div class="kv" style="margin:6px 0 10px">Đang mở theo <b>dạng câu</b>: mỗi lần bấm, phòng rút ngẫu nhiên trong toàn chương các câu thuộc tab đang chọn (câu chùm mở cả cặp).</div>';
@@ -1464,6 +1484,8 @@ function act(d){
   else if(a==='word'){if(!S.wordBusy)wordDownload(d.src);}
   else if(a==='selgroup'){S.sel.group=d.g;render();}
   else if(a==='nq'){S.sel.n=d.n==='all'?'all':(+d.n||1);render();}
+  else if(a==='runStart'){S.dset=null;ctl('runStart',{group:curGroup(),delay:parseInt(dv('rundelay',cfgSet().runDelay||10),10)||10,pct:parseInt(dv('runpct',cfgSet().pct||90),10)||90});}
+  else if(a==='runStop'){ctl('runStop');}
   else if(a==='liteToggle'){S.showAll=!S.showAll;render();}
   else if(a==='optsToggle'){S.showOpts=!S.showOpts;try{localStorage.setItem('showOpts',S.showOpts?'1':'0');}catch(x){}render();}
   else if(a==='focus'){S.focusQ=+d.i;render();}
@@ -1491,13 +1513,15 @@ app.addEventListener('input',function(e){
     var s=app.querySelector('[data-act="submit"][data-q="'+d.q+'"]');if(s&&q)s.disabled=!ready(q);
   }
 });
-app.addEventListener('input',function(e){var t=e.target,d=t.dataset;if(d.in==='setcap'||d.in==='setpct'){S.dset=S.dset||{};S.dset[d.in]=t.value;}});
+app.addEventListener('input',function(e){var t=e.target,d=t.dataset;if(d.in==='setcap'||d.in==='setpct'||d.in==='rundelay'||d.in==='runpct'){S.dset=S.dset||{};S.dset[d.in]=t.value;}});
 app.addEventListener('change',function(e){
   var t=e.target,d=t.dataset;
   if(d.in==='selgroup'){S.sel.group=t.value;render();}
   else if(d.in==='seltype'){S.sel.type=t.value;render();}
   else if(d.in==='seln'){S.sel.n=Math.max(1,parseInt(t.value,10)||1);render();}
   else if(d.in==='setcap'){S.dset=null;ctl('settings',{cap:parseInt(t.value,10)||0});}
+  else if(d.in==='rundelay'){S.dset=null;ctl('settings',{runDelay:parseInt(t.value,10)||10});}
+  else if(d.in==='runpct'){S.dset=null;ctl('settings',{pct:parseInt(t.value,10)||90});}
   else if(d.in==='setpct'){S.dset=null;ctl('settings',{pct:parseInt(t.value,10)||90});}
   else if(d.in==='setauto'){ctl('settings',{auto:t.checked});}
   else if(d.in==='printAns'){S.printAns=t.checked;}
