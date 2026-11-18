@@ -809,7 +809,8 @@ function teacherView(){
     '<button class="btn" data-act="optsToggle">'+(S.showOpts?'Ẩn cài đặt thêm':'Cài đặt thêm')+'</button>')+tg+'</div><div class="meta"><span>'+esc(viewDe()?'Đề ôn trộn ngẫu nhiên'+(cfgSet().deSo?' · đã soạn '+cfgSet().deSo+' đề':''):curSess())+' · đã mở <b class="num">'+r+'/'+N+'</b> câu · đã đóng <b class="num">'+k+'</b></span><span>Học sinh vào lớp: <b class="num">'+P+(cfgSet().cap>0?'/'+cfgSet().cap:'')+'</b>'+(cfgSet().locked?' · đã khóa':'')+'</span></div>'+(lite?'':(TABS()?viewSeg():'')+printRow())+'</div>';
   if(!lite){h+=qtTeacherCards(r);
   h+=ringCard(S.config.progress);
-  if(N)h+=tabBar(qs,r);}
+  }
+  if(N)h+=tabBar(qs,r);
   if(N&&viewDe())h+=dePanel(qs,r,k);
   if(N&&!viewDe()&&TABS()&&!viewBo())h+='<div class="kv" style="margin:6px 0 10px">Đang mở theo <b>dạng câu</b>: mỗi lần bấm, phòng rút ngẫu nhiên trong toàn chương các câu thuộc tab đang chọn (câu chùm mở cả cặp).</div>';
   if(N&&S.showOpts&&!lite){h+=openPanel(qs,r,k);h+=roomPanel();}
