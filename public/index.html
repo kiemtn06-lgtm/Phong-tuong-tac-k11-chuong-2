@@ -790,7 +790,7 @@ function teacherView(){
   var P=ids.length;
   if(!S.sel)S.sel={group:'plan',type:'all',n:1,mode:'single'};
   var batch=isBatch();
-  var lite=!!(TABS()&&viewBo()&&!S.showAll),tg=TABS()&&viewBo()?'<button class="btn" data-act="liteToggle">'+(S.showAll?'Thu gọn':'☰ Công cụ khác')+'</button>':'';
+  var lite=!!(TABS()&&viewBo()&&!S.showAll),tg=TABS()&&viewBo()?(lite?'<button class="btn" data-act="qr">'+(S.showQR?'Ẩn mã QR':'Mã QR')+'</button>':'')+'<button class="btn" data-act="liteToggle">'+(S.showAll?'Thu gọn':'☰ Công cụ khác')+'</button>':'';
   var tabRem=TABS()?qs.slice(r).filter(function(x){return tabOf(x)===curTab();}).length:(N-r);
   var tabOpen=TABS()?qs.slice(0,r).filter(function(x){return tabOf(x)===curTab();}).length:r;
   h+='<div class="card"><div class="row">'+
@@ -807,7 +807,7 @@ function teacherView(){
     '<button class="btn" data-act="sum"'+(k?'':' disabled')+'>'+(sumOn()?'Ẩn tổng kết':'Xem tổng kết')+'</button>'+
     '<button class="btn" data-act="ans">'+(S.showAns?'Ẩn đáp án':'Hiện đáp án (chỉ giáo viên)')+'</button>'+'<button class="btn" data-act="qr">Mã QR</button><button class="btn" data-act="qt">Điểm quá trình</button>'+'<button class="btn" data-act="csv">Tải kết quả (.csv)</button>'+
     '<button class="btn" data-act="optsToggle">'+(S.showOpts?'Ẩn cài đặt thêm':'Cài đặt thêm')+'</button>')+tg+'</div><div class="meta"><span>'+esc(viewDe()?'Đề ôn trộn ngẫu nhiên'+(cfgSet().deSo?' · đã soạn '+cfgSet().deSo+' đề':''):curSess())+' · đã mở <b class="num">'+r+'/'+N+'</b> câu · đã đóng <b class="num">'+k+'</b></span><span>Học sinh vào lớp: <b class="num">'+P+(cfgSet().cap>0?'/'+cfgSet().cap:'')+'</b>'+(cfgSet().locked?' · đã khóa':'')+'</span></div>'+(lite?'':(TABS()?viewSeg():'')+printRow())+'</div>';
-  if(!lite){h+=qtTeacherCards(r);
+  if(lite){if(S.showQR||!r)h+=qtQrCard();}else{h+=qtTeacherCards(r);
   h+=ringCard(S.config.progress);
   }
   if(N)h+=tabBar(qs,r);
