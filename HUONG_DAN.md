@@ -2,7 +2,7 @@
 
 Cùng động cơ và cách dùng với phòng khối 10 Chương II và phòng khối 12 Chương 2 Chất khí: học sinh vào bằng link, nhập họ tên là làm được, không cần tài khoản. Giáo viên vào `/teacher` bằng mật khẩu để mở câu, đóng câu, xem % đúng và danh sách đúng/sai, in phiếu, xuất Word, tải kết quả `.csv`.
 
-**Nội dung**: 90 câu (58 trắc nghiệm, 11 đúng sai, 21 trả lời ngắn), lấy từ tập Bài tập Vật lí 11 học kì I (bản giáo viên) trong Hồ sơ dạy học số. Câu tự luận không đưa vào phòng. Chia **6 nhóm** theo bài:
+**Nội dung**: 92 câu (58 trắc nghiệm, 11 đúng sai, 23 trả lời ngắn; 2 câu trả lời ngắn B9-III-01 và B9-III-02, cùng nhóm Bài 9 thêm tay ngày 18/11/2026 theo yêu cầu, có lời giải), lấy từ tập Bài tập Vật lí 11 học kì I (bản giáo viên) trong Hồ sơ dạy học số. Câu tự luận không đưa vào phòng. Chia **6 nhóm** theo bài:
 
 | Nhóm | Nội dung | Số câu |
 |---|---|---|
