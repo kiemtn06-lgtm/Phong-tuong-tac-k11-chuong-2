@@ -790,7 +790,7 @@ function teacherView(){
   var P=ids.length;
   if(!S.sel)S.sel={group:'plan',type:'all',n:1,mode:'single'};
   var batch=isBatch();
-  var lite=!!(TABS()&&viewBo()&&!S.showAll),tg=TABS()&&viewBo()?(lite?'<button class="btn" data-act="qr">'+(S.showQR?'Ẩn mã QR':'Mã QR')+'</button>':'')+'<button class="btn" data-act="liteToggle">'+(S.showAll?'Thu gọn':'☰ Công cụ khác')+'</button>':'';
+  var lite=!!(TABS()&&!viewDe()&&!S.showAll),tg=TABS()&&!viewDe()?(lite?'<button class="btn" data-act="qr">'+(S.showQR?'Ẩn mã QR':'Mã QR')+'</button>':'')+'<button class="btn" data-act="liteToggle">'+(S.showAll?'Thu gọn':'☰ Công cụ khác')+'</button>':'';
   var tabRem=TABS()?qs.slice(r).filter(function(x){return tabOf(x)===curTab();}).length:(N-r);
   var tabOpen=TABS()?qs.slice(0,r).filter(function(x){return tabOf(x)===curTab();}).length:r;
   h+='<div class="card"><div class="row">'+
@@ -812,7 +812,7 @@ function teacherView(){
   }
   if(N)h+=tabBar(qs,r);
   if(N&&viewDe())h+=dePanel(qs,r,k);
-  if(N&&!viewDe()&&TABS()&&!viewBo())h+='<div class="kv" style="margin:6px 0 10px">Đang mở theo <b>dạng câu</b>: mỗi lần bấm, phòng rút ngẫu nhiên trong toàn chương các câu thuộc tab đang chọn (câu chùm mở cả cặp).</div>';
+  if(N&&!lite&&!viewDe()&&TABS()&&!viewBo())h+='<div class="kv" style="margin:6px 0 10px">Đang mở theo <b>dạng câu</b>: mỗi lần bấm, phòng rút ngẫu nhiên trong toàn chương các câu thuộc tab đang chọn (câu chùm mở cả cặp).</div>';
   if(N&&S.showOpts&&!lite){h+=openPanel(qs,r,k);h+=roomPanel();}
   var hasV=qs.some(isV),tt=hasV&&S.ttab==='essay';
   if(hasV)h+='<div class="seg2"><button class="'+(tt?'':'on')+'" data-act="ttab" data-t="main">Câu hỏi làm bài</button><button class="'+(tt?'on':'')+'" data-act="ttab" data-t="essay">Tự luận (chỉ xem)</button></div>';
