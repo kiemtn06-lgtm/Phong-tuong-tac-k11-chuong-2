@@ -798,7 +798,7 @@ function teacherView(){
       '<button class="btn primary" data-act="openNext"'+(tabRem?'':' disabled')+'>Mở câu '+(tabOpen+1)+'</button>'+
       '<button class="btn" data-act="openSession"'+(tabRem?'':' disabled')+'>Mở hết '+(viewBo()?'bộ này':'buổi')+'</button>':
       '<button class="btn primary" data-act="openNext"'+(tabRem?'':' disabled')+'>Mở 1 câu ngẫu nhiên</button>'+
-      '<button class="btn" data-act="openSession" data-n="5"'+(tabRem?'':' disabled')+'>Mở 5 câu ngẫu nhiên</button>')+
+      '<button class="btn" data-act="openSession" data-n="5"'+(tabRem?'':' disabled')+'>Mở 5 câu ngẫu nhiên</button>'+'<button class="btn" data-act="openSeq"'+(tabRem?'':' disabled')+'>Mở câu '+(tabOpen+1)+' (theo thứ tự)</button>')+
     (batch?'<button class="btn primary" data-act="closeAll"'+(k>=r?' disabled':'')+'>Đóng tất cả &amp; hiện đáp án</button>':'<button class="btn" data-act="closeNext"'+(k>=r?' disabled':'')+'>Đóng câu '+(TABS()&&qs[k]?ordTab(qs,k):k+1)+' &amp; hiện đáp án</button>'+(r-k>1?'<button class="btn primary" data-act="closeAll">Đóng cả '+(r-k)+' câu đang mở &amp; hiện đáp án</button>':''))+
     (lite?'':'<button class="btn" data-act="openAll"'+(r>=N?' disabled':'')+'>Mở tất cả</button>'+
     (S.confirmReset?
@@ -1443,6 +1443,7 @@ function act(d){
   else if(a==='openSession'&&viewBo()){if(curGroup())ctl('open',{group:curGroup(),type:'all',n:'all'});}
   else if(a==='view'){S.qtab=null;S.sel=null;S.focusQ=null;ctl('settings',{view:(d.v==='bo'||d.v==='de')?d.v:'dang'});}
   /* theo dạng câu: rút ngẫu nhiên trong toàn chương các câu cùng dạng với tab đang chọn (câu chùm mở cả cặp) */
+  else if(a==='openSeq'&&TABS()){ctl('open',{group:'plan',type:effType(),n:1});}
   else if(a==='openNext'&&TABS()){ctl('open',{group:'plan',type:effType(),n:1,rand:true});}
   else if(a==='openSession'&&TABS()){ctl('open',{group:'plan',type:effType(),n:+d.n||5,rand:true});}
   else if(a==='openNext'||a==='openAll'||a==='openSession'||a==='closeNext'||a==='draw'){ctl(a);}
