@@ -62,6 +62,9 @@ function doOpen(group, type, n, rand) {
   const tail = state.order.slice(state.released);
   const cand = tail.filter(id => {
     const q = BYID[id];
+    // Mở rộng ôn tập HK I (set 'hk1', nhóm 7-13): chỉ mở theo nhóm, hoặc khi giáo viên chọn kiểu 'Dạng câu · lộn xộn' (group 'tron': rút ngẫu nhiên cả 6 nhóm cũ lẫn câu Mở rộng).
+    // Mọi kiểu mở khác ('plan': câu kế tiếp, Mở tất cả...) không lấy câu hk1.
+    if (group === 'plan' && q.set === 'hk1') return false;
     if (group === 'mix' && q.set !== 'mix') return false;
     if (/^\d+$/.test(group) && (q.set === 'mix' || String(q.group) !== group)) return false;
     if (type !== 'all' && q.type !== type) return false;
@@ -80,7 +83,8 @@ function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = crypto.
 function drawFromRest() {
   const rest = state.order.slice(state.released), used = new Set(), out = [], short = [];
   for (const r of CFG.matrix.rules) {
-    const pool = shuffle(rest.filter(id => BYID[id].type === r.type && (r.topic == null || BYID[id].topic === r.topic)));
+    // r.set: chỉ rút trong bộ câu đó (ví dụ 'g' = 6 nhóm theo bài, không lẫn câu Mở rộng ôn tập HK I)
+    const pool = shuffle(rest.filter(id => BYID[id].type === r.type && (r.topic == null || BYID[id].topic === r.topic) && (r.set == null || BYID[id].set === r.set)));
     const inPool = new Set(pool), got = [];
     for (const id of pool) {
       if (got.length >= r.n || used.has(id)) continue;
@@ -358,7 +362,7 @@ const server = http.createServer(async (req, res) => {
         const b = await readJson(req); const a = b.action;
         if (a === 'open') {
           const group = String(b.group || 'plan'), type = ['mc', 'tf', 'short', 'view'].includes(b.type) ? b.type : 'all';
-          if (!(group === 'plan' || group === 'mix' || /^\d+$/.test(group))) return send(res, 400, { error: 'Nhóm không hợp lệ' });
+          if (!(group === 'plan' || group === 'tron' || group === 'mix' || /^\d+$/.test(group))) return send(res, 400, { error: 'Nhóm không hợp lệ' });
           const n = b.n === 'all' ? Infinity : Math.max(1, Math.min(500, parseInt(b.n, 10) || 1));
           if (!doOpen(group, type, n, !!b.rand)) return send(res, 409, { error: 'Không còn câu phù hợp để mở' });
         }

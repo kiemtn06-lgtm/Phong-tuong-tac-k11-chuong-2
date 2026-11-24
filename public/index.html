@@ -449,7 +449,7 @@ function deSum(mx){var nm={mc:'TN',tf:'ĐS',short:'TLN'};return mx.rules.map(fun
 /* Đề ôn trộn ngẫu nhiên: mỗi lần soạn bốc từ các câu CHƯA mở của toàn chương, đúng 18 TN – 4 ĐS – 6 TLN, mở cả đề một lần. */
 function dePanel(qs,r,k){
   var mx=S.config.matrix,s=cfgSet(),rest={},nm={mc:'trắc nghiệm',tf:'đúng sai',short:'trả lời ngắn'};
-  qs.slice(r).forEach(function(x){rest[x.type]=(rest[x.type]||0)+1;});
+  var rs=mx.rules[0]&&mx.rules[0].set;qs.slice(r).forEach(function(x){if(rs==null||x.set===rs)rest[x.type]=(rest[x.type]||0)+1;});
   var du=mx.rules.every(function(x){return (rest[x.type]||0)>=x.n;}),open=k<r;
   return '<div class="card"><h2>Đề ôn trộn ngẫu nhiên · '+deSum(mx)+'</h2>'+
     '<div class="kv">Mỗi đề bốc ngẫu nhiên từ các bài trong toàn chương, chỉ lấy câu chưa mở (đề sau không trùng đề trước), câu chùm luôn đi đủ cặp. Đề mở cả một lần; học sinh làm theo 3 tab Trắc nghiệm / Đúng sai / Trả lời ngắn. Làm xong bấm “Đóng tất cả &amp; hiện đáp án”.</div>'+
@@ -568,7 +568,7 @@ function figSvg(f){
   if(!f)return '';
   if(f.img||f.html){
     var oo='';
-    if(f.img)oo+='<div class="qfigs">'+(Array.isArray(f.img)?f.img:[f.img]).map(function(n,i){var w=f.w&&f.w[i]?' style="width:'+(+f.w[i])+'px"':'';return '<img class="qfig" data-act="zoom" data-src="/img/'+esc(n)+'" title="Bấm để phóng to"'+w+' src="/img/'+esc(n)+'" alt="'+esc(f.alt||'Hình minh họa')+'">';}).join('')+'</div>';
+    if(f.img)oo+='<div class="qfigs">'+(Array.isArray(f.img)?f.img:[f.img]).map(function(n,i){var w=f.w&&f.w[i]?' style="width:'+(+f.w[i])+'px;max-width:100%;max-height:none"':'';return '<img class="qfig" data-act="zoom" data-src="/img/'+esc(n)+'" title="Bấm để phóng to"'+w+' src="/img/'+esc(n)+'" alt="'+esc(f.alt||'Hình minh họa')+'">';}).join('')+'</div>';
     if(f.html)oo+='<div class="rawfig">'+f.html.split('$').map(function(p,k){return k%2?texK(p):p;}).join('')+'</div>';
     return oo;
   }
@@ -738,6 +738,7 @@ function summaryCard(ids,sc,rank,qs,k,P){
 function effType(){var T=TABS();if(T){var t=T.filter(function(x){return x.id===curTab();})[0];if(t&&t.types.length===1)return t.types[0];}return (S.sel&&S.sel.type)||'all';}
 function candCount(qs,r,group,type){
   return qs.slice(r).filter(function(x){
+    if(group==='plan'&&x.set==='hk1')return false;
     if(group==='mix'&&x.set!=='mix')return false;
     if(/^\d+$/.test(group)&&(x.set==='mix'||String(x.group)!==group))return false;
     if(type!=='all'&&x.type!==type)return false;
@@ -779,7 +780,7 @@ function openPanel(qs,r,k){
   var G=(S.config&&S.config.groups)||{},sel=S.sel,gstat={};
   qs.forEach(function(x,i){var key=x.set==='mix'?'mix':String(x.group),g=gstat[key]||(gstat[key]={tot:0,op:0,cl:0,rem:0,t:{mc:0,tf:0,short:0,view:0}});
     g.tot++;g.t[x.type]=(g.t[x.type]||0)+1;if(i<r)g.op++;else g.rem++;if(i<k)g.cl++;});
-  var batch=isBatch(),cand=candCount(qs,r,sel.group,effType()),n=(batch||sel.n==='all')?cand:Math.min(Math.max(1,+sel.n||1),cand||1);
+  var batch=isBatch(),cand=candCount(qs,r,(TABS()&&!viewBo()&&sel.group==='plan')?'tron':sel.group,effType()),n=(batch||sel.n==='all')?cand:Math.min(Math.max(1,+sel.n||1),cand||1);
   var tbNow=curTab();
   var gl=Object.keys(gstat).filter(function(g){return !TABS()||qs.some(function(x){return String(x.group)===g&&x.set!=='mix'&&tabOf(x)===tbNow;});})
     .sort(function(a,b){return a==='mix'?1:b==='mix'?-1:(+a)-(+b);});
@@ -833,7 +834,7 @@ function teacherView(){
   h+=runCard();
   h+=ringCard(S.config.progress);
   if(N&&viewDe())h+=dePanel(qs,r,k);
-  if(N&&!lite&&!viewDe()&&TABS()&&!viewBo())h+='<div class="kv" style="margin:6px 0 10px">Đang mở theo <b>dạng câu</b>: mỗi lần bấm, phòng rút ngẫu nhiên trong toàn chương các câu thuộc tab đang chọn (câu chùm mở cả cặp).</div>';
+  if(N&&!lite&&!viewDe()&&TABS()&&!viewBo())h+='<div class="kv" style="margin:6px 0 10px">Đang mở theo <b>dạng câu</b>: mỗi lần bấm, phòng rút ngẫu nhiên các câu thuộc tab đang chọn trong toàn bộ phòng, kể cả các câu Mở rộng ôn tập HK I (nhóm 7-13) trộn lẫn với 6 nhóm Bài 8-15 (câu chùm mở cả cặp). Mở theo nhóm hoặc theo đề ôn thì không trộn.</div>';
   if(N&&S.showOpts&&!lite){h+=openPanel(qs,r,k);h+=roomPanel();}
   var hasV=qs.some(isV),tt=hasV&&S.ttab==='essay';
   if(hasV)h+='<div class="seg2"><button class="'+(tt?'':'on')+'" data-act="ttab" data-t="main">Câu hỏi làm bài</button><button class="'+(tt?'on':'')+'" data-act="ttab" data-t="essay">Tự luận (chỉ xem)</button></div>';
@@ -1465,8 +1466,8 @@ function act(d){
   else if(a==='view'){S.qtab=null;S.sel=null;S.focusQ=null;ctl('settings',{view:(d.v==='bo'||d.v==='de')?d.v:'dang'});}
   /* theo dạng câu: rút ngẫu nhiên trong toàn chương các câu cùng dạng với tab đang chọn (câu chùm mở cả cặp) */
   else if(a==='openSeq'&&TABS()){ctl('open',{group:'plan',type:effType(),n:1});}
-  else if(a==='openNext'&&TABS()){ctl('open',{group:'plan',type:effType(),n:1,rand:true});}
-  else if(a==='openSession'&&TABS()){ctl('open',{group:'plan',type:effType(),n:+d.n||5,rand:true});}
+  else if(a==='openNext'&&TABS()){ctl('open',{group:'tron',type:effType(),n:1,rand:true});}
+  else if(a==='openSession'&&TABS()){ctl('open',{group:'tron',type:effType(),n:+d.n||5,rand:true});}
   else if(a==='openNext'||a==='openAll'||a==='openSession'||a==='closeNext'||a==='draw'){ctl(a);}
   else if(a==='ans'){S.showAns=!S.showAns;render();}
   else if(a==='ttab'){S.ttab=d.t==='essay'?'essay':'main';render();}

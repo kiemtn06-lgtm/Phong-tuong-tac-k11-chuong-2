@@ -15,6 +15,8 @@ Cùng động cơ và cách dùng với phòng khối 10 Chương II và phòng 
 
 Mã câu: `B12-III-05` = Bài 12, Phần III, câu 5 (khớp với số câu trong trang Bài tập theo bài và file Word của từng bài).
 
+**Mở rộng ôn tập HK I (ghép 24/11/2026)**: thêm 7 nhóm (7–13) tên "Mở rộng ôn tập HK I · …" gồm 181 câu trắc nghiệm lấy từ tệp Word 11A5 ôn thi HK I (Dao động điều hòa; Dao động tắt dần, cưỡng bức, cộng hưởng; Sóng cơ, mô tả sóng; Sóng điện từ; Giao thoa; Sóng dừng; Sóng âm, đo tốc độ truyền âm). Câu thuộc `set: 'hk1'`, mã `HK1-<nhóm>-<số>`. Đề ôn trộn ngẫu nhiên (chế độ 2) chỉ bốc trong 6 nhóm cũ (quy tắc `set: 'g'`); mở theo nhóm hoặc "Dạng câu" thì có cả câu mới. Ghi chú nguồn nằm ở ghi chú giáo viên của từng câu. Danh sách câu đã gõ lại công thức, câu bỏ và chỗ nghi sai: `K11\On_tap_HK1\PHONG_MO_RONG_HK1_CAN_DUYET.md` trong kho hồ sơ. Công cụ: `tools/k11_bai_tap/tach_11a5.py`, `chuan_hk1.py`, `tao_phong_hk1.py` (KHÔNG chạy lại `tao_phong.py` lên kho này vì sẽ mất 2 câu Bài 9 thêm tay).
+
 **Cần biết về đáp án**
 - Đáp án lấy theo bản giáo viên (phương án gạch chân, bảng đáp án). Riêng Bài 11 phần I câu 2, bản Word gạch chân hai phương án, đáp án lấy là B (tần số tăng dần từ sóng vô tuyến đến tia gamma).
 - Bản giáo viên không có lời giải nên phòng chỉ hiện đáp án, không có hướng dẫn giải.
