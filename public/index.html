@@ -623,6 +623,8 @@ function head(role){
     (S.err?'<div class="note bad">'+esc(S.err)+'</div>':'')+
     (S.slow&&!S.loaded?'<div class="note">Chưa kết nối được dữ liệu. Dữ liệu có thể chưa cập nhật.</div>':'');
 }
+/* thí nghiệm ảo kèm phòng: học sinh mở ở thẻ mới để làm, giáo viên mở để biểu diễn */
+function tnCard(){return '<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>🔬 <b>Thí nghiệm ảo · Bài 10. Đo tần số của sóng âm</b><br><span class="kv">Nối loa, micro với máy hiện sóng, đọc số ô và TIME/DIV, tính T và f, ghi Bảng 10.1.</span></span><a class="btn primary" href="/thi-nghiem/b10" target="_blank" rel="noopener" style="text-decoration:none">Mở thí nghiệm</a></div>';}
 function msg(t,d){return '<div class="top"><div><div class="brand">Phòng Làm Bài</div><h1>'+esc(t)+'</h1></div></div><div class="card">'+esc(d)+'</div>';}
 
 function studentView(){
@@ -641,6 +643,7 @@ function studentView(){
     '<div class="meta"><span>Đã mở '+r+'/'+qs.length+' câu</span><span>Đúng '+right+'/'+kc+' câu đã chấm'+(kc?' · Điểm '+sc10(right,kc)+'/10':'')+'</span></div></div>';
   h+=qtStudentCard();
   h+=ringCard(S.config.progress);
+  h+=tnCard();
   if(!r)return h+'<div class="card">Chờ giáo viên mở câu 1…</div>';
   /* Trang học sinh không chia tab: giáo viên mở câu nào (theo buổi, theo dạng hay đề ôn) thì học sinh làm câu đó,
      đánh số theo thứ tự mở; câu đang mở ở trên, câu đã đóng (có đáp án) ở dưới. */
@@ -798,7 +801,7 @@ function openPanel(qs,r,k){
     '<div class="kv" style="margin-top:8px">TN: nhiều lựa chọn · ĐS: đúng - sai · TLN: trả lời ngắn. Bấm một nhóm để chọn rồi bấm “Mở”.</div></div>';
 }
 function teacherView(){
-  var c=S.config,qs=Q(),r=rel(),k=clo(),N=qs.length,h=head('Giáo viên');
+  var c=S.config,qs=Q(),r=rel(),k=clo(),N=qs.length,h=head('Giáo viên')+tnCard();
   var ids=Object.keys(S.responses),sc={},lv={},rank={};
   ids.forEach(function(id){var a=S.responses[id].answers||{},s=0,l=0;
     qs.forEach(function(x,i){if(i<r&&grade(x,a[x.id],keyFor(x.id))===true&&!isLate(S.responses[id],x.id)){l++;if(i<k)s++;}});sc[id]=s;lv[id]=l;});

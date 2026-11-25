@@ -304,6 +304,8 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
     const p = url.pathname;
     if (req.method === 'GET' && (p === '/' || p === '/teacher' || p === '/index.html')) return send(res, 200, INDEX, 'text/html; charset=utf-8');
+    // thí nghiệm ảo Bài 10. Đo tần số của sóng âm (cùng trang với hồ sơ: bai-giang/k11-B10-thi-nghiem.html)
+    if (req.method === 'GET' && p === '/thi-nghiem/b10') return send(res, 200, fs.readFileSync(path.join(__dirname, 'public', 'thi-nghiem', 'k11-b10.html')), 'text/html; charset=utf-8');
     if (req.method === 'GET' && p === '/healthz') return send(res, 200, 'ok', 'text/plain');
     // thư viện vẽ mã QR (qrcode-generator, MIT) cho trang giáo viên
     if (req.method === 'GET' && p === '/lib/qrcode.js') { const b = fs.readFileSync(path.join(__dirname, 'public', 'lib', 'qrcode.js')); res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=86400', 'Content-Length': b.length }); return res.end(b); }
