@@ -625,6 +625,42 @@ function head(role){
 }
 /* thí nghiệm ảo kèm phòng: học sinh mở ở thẻ mới để làm, giáo viên mở để biểu diễn */
 function tnCard(){return '<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>🔬 <b>Thí nghiệm ảo · Bài 10. Đo tần số của sóng âm</b><br><span class="kv">Nối loa, micro với máy hiện sóng, đọc số ô và TIME/DIV, tính T và f, ghi Bảng 10.1.</span></span><a class="btn primary" href="/thi-nghiem/b10" target="_blank" rel="noopener" style="text-decoration:none">Mở thí nghiệm</a></div>';}
+/* kết quả thí nghiệm ảo Bài 10 học sinh gửi về (state.tn). Gợi ý điểm (thang 10):
+   đo đủ ≥ 3 lần: 1,5 điểm/nguồn, tối đa 2 nguồn (3 đ); tính đúng T và f (lệch ≤ 3%): 5 đ × tỉ lệ lần đúng;
+   f trung bình đo được lệch ≤ 5% so với f thật ở mọi nguồn đủ 3 lần: 2 đ. */
+function tnSum(t){
+  var by={},recs=t.records||[],ok=0;
+  recs.forEach(function(r){var T=r.dx*r.td/r.n,f=1000/T,ti=parseFloat(String(r.Tin).replace(',','.')),fi=parseFloat(String(r.fin).replace(',','.'));
+    if(isFinite(ti)&&isFinite(fi)&&Math.abs(ti-T)/T<=.03&&Math.abs(fi-f)/f<=.03)ok++;
+    (by[r.src]=by[r.src]||[]).push(T);});
+  var src=Object.keys(by).map(Number).sort(function(a,b){return a-b;}),du=0,saiOk=true,ds=src.map(function(k){
+    var Ts=by[k],Tb=Ts.reduce(function(a,b){return a+b;},0)/Ts.length,fb=1000/Tb,fr=k===10?t.forkF:(t.freqs||[])[k],e=fr?Math.abs(fb-fr)/fr*100:null;
+    if(Ts.length>=3){du++;if(e==null||e>5)saiOk=false;}
+    return {ten:k===10?'Âm thoa':'N'+(k+1),n:Ts.length,f:fb,fr:fr,e:e};});
+  var diem=Math.min(du,2)*1.5+(recs.length?5*ok/recs.length:0)+(du&&saiOk?2:0);
+  return {ds:ds,n:recs.length,ok:ok,du:du,diem:Math.round(diem*10)/10};
+}
+function vn(x,d){return (+x).toFixed(d).replace('.',',');}
+function tnTeacherCard(){
+  var T=S.tn||{},ids=Object.keys(T).sort(function(a,b){return String(T[a].name).localeCompare(String(T[b].name),'vi');});
+  var h='<div class="card"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>📋 Kết quả thí nghiệm Bài 10 · '+ids.length+' em đã gửi</b><span class="row" style="gap:6px">'+
+    '<button class="btn sm" data-act="tnToggle">'+(S.showTn?'Ẩn bảng':'Xem bảng')+'</button><button class="btn sm" data-act="tnCsv"'+(ids.length?'':' disabled')+'>Tải .csv</button>'+
+    (ids.length?(S.tnAsk?'<button class="btn sm danger" data-act="tnClear2">Xác nhận xoá</button><button class="btn sm" data-act="tnNo">Huỷ</button>':'<button class="btn sm" data-act="tnClear">Xoá kết quả TN</button>'):'')+'</span></div>';
+  if(!S.showTn)return h+'</div>';
+  if(!ids.length)return h+'<div class="kv" style="margin-top:8px">Chưa em nào gửi. Học sinh bấm “Mở thí nghiệm”, đo xong bấm “📤 Gửi kết quả cho thầy cô” ở phần Bảng số liệu.</div></div>';
+  h+='<div style="overflow-x:auto;margin-top:8px"><table class="m"><thead><tr><th>#</th><th>Học sinh</th><th>Gửi lúc</th><th>Số lần đo</th><th>Tính T, f đúng</th><th>f đo được / f thật (sai số)</th><th>Gợi ý điểm</th></tr></thead><tbody>';
+  ids.forEach(function(id,i){var t=T[id],m=tnSum(t),d=new Date(t.at);
+    h+='<tr><td>'+(i+1)+'</td><td>'+esc(t.name)+(t.nhom?' · nhóm '+esc(t.nhom):'')+(t.inRoom?'':' <span class="kv">(chưa vào phòng)</span>')+'</td><td>'+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+'</td><td>'+m.n+'</td><td>'+m.ok+'/'+m.n+'</td><td>'+
+      m.ds.map(function(x){return esc(x.ten)+' ('+x.n+' lần): '+vn(x.f,1)+' / '+(x.fr||'?')+' Hz'+(x.e!=null?' ('+vn(x.e,1)+'%)':'');}).join('<br>')+'</td><td><b>'+vn(m.diem,1)+'</b></td></tr>';});
+  return h+'</tbody></table></div><div class="kv" style="margin-top:6px">Gợi ý điểm: đo đủ ≥ 3 lần mỗi nguồn được 1,5 đ/nguồn (tối đa 2 nguồn, 3 đ); tính đúng T và f (lệch ≤ 3%) được 5 đ × tỉ lệ lần đúng; f trung bình lệch ≤ 5% so với f thật ở mọi nguồn đủ 3 lần được 2 đ. Mỗi máy có tần số thật riêng, em gửi lại thì bản mới thay bản cũ.</div></div>';
+}
+function tnCsv(){
+  var T=S.tn||{},L=[['Học sinh','Nhóm','Gửi lúc','Nguồn','Lần','Δx (ô)','n','TIME/DIV (ms/ô)','T (ms)','f (Hz)','HS tính T','HS tính f','f thật (Hz)','Gợi ý điểm']];
+  Object.keys(T).forEach(function(id){var t=T[id],m=tnSum(t),c={},d=new Date(t.at).toLocaleString('vi-VN');
+    t.records.forEach(function(r){c[r.src]=(c[r.src]||0)+1;var Tm=r.dx*r.td/r.n;
+      L.push([t.name,t.nhom||'',d,r.src===10?'Âm thoa':'N'+(r.src+1),c[r.src],r.dx,r.n,r.td,Tm.toFixed(3),(1000/Tm).toFixed(2),r.Tin,r.fin,r.src===10?t.forkF:(t.freqs||[])[r.src],m.diem]);});});
+  qtDown('ket-qua-thi-nghiem-bai10.csv','﻿'+L.map(function(r){return r.map(function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n'),'text/csv;charset=utf-8');
+}
 function msg(t,d){return '<div class="top"><div><div class="brand">Phòng Làm Bài</div><h1>'+esc(t)+'</h1></div></div><div class="card">'+esc(d)+'</div>';}
 
 function studentView(){
@@ -801,7 +837,7 @@ function openPanel(qs,r,k){
     '<div class="kv" style="margin-top:8px">TN: nhiều lựa chọn · ĐS: đúng - sai · TLN: trả lời ngắn. Bấm một nhóm để chọn rồi bấm “Mở”.</div></div>';
 }
 function teacherView(){
-  var c=S.config,qs=Q(),r=rel(),k=clo(),N=qs.length,h=head('Giáo viên')+tnCard();
+  var c=S.config,qs=Q(),r=rel(),k=clo(),N=qs.length,h=head('Giáo viên')+tnCard()+tnTeacherCard();
   var ids=Object.keys(S.responses),sc={},lv={},rank={};
   ids.forEach(function(id){var a=S.responses[id].answers||{},s=0,l=0;
     qs.forEach(function(x,i){if(i<r&&grade(x,a[x.id],keyFor(x.id))===true&&!isLate(S.responses[id],x.id)){l++;if(i<k)s++;}});sc[id]=s;lv[id]=l;});
@@ -1496,6 +1532,11 @@ function act(d){
   else if(a==='reset'){S.confirmReset=true;render();}
   else if(a==='cancel'){S.confirmReset=false;render();}
   else if(a==='reset2'){S.confirmReset=false;S.focusQ=null;S.showSum=undefined;ctl('reset');}
+  else if(a==='tnToggle'){S.showTn=!S.showTn;render();}
+  else if(a==='tnCsv')tnCsv();
+  else if(a==='tnClear'){S.tnAsk=true;render();}
+  else if(a==='tnNo'){S.tnAsk=false;render();}
+  else if(a==='tnClear2'){S.tnAsk=false;ctl('tnClear');}
   else if(a==='csv'){
     fetch('/api/t/export.csv',{headers:{'x-teacher-pass':PASS||''}}).then(function(r){return r.blob();}).then(function(b){
       var u=URL.createObjectURL(b),l=document.createElement('a');l.href=u;l.download='ket-qua-li11-chuong2-song.csv';
@@ -1547,7 +1588,7 @@ function poll(){
     var hadCfg=!!S.config,pc=hadCfg?(S.config.closed||0):0,pseq=hadCfg?(S.config.autoSeq||0):0;
     S.config=j.config;
     var autoNow=hadCfg&&(S.config.autoSeq||0)>pseq;
-    if(S.teacher){S.key=j.key;S.responses=j.responses||{};if(autoNow)sfxEnd();}
+    if(S.teacher){S.key=j.key;S.responses=j.responses||{};S.tn=j.tn||{};if(autoNow)sfxEnd();}
     else{S.reveal=j.reveal||{answers:{},explain:{}};S.mine=j.mine;if(hadCfg){if(autoNow){sfxEnd();setTimeout(function(){resultSound(pc);},1600);}else resultSound(pc);}}
     render();
   }).catch(function(e){

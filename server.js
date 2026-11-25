@@ -329,6 +329,24 @@ const server = http.createServer(async (req, res) => {
       save();
       return send(res, 200, { sid });
     }
+    // kết quả thí nghiệm ảo Bài 10 (trang /thi-nghiem/b10): học sinh gửi bảng số liệu, gửi lại thì thay bản cũ
+    if (req.method === 'POST' && p === '/api/tn') {
+      const b = await readJson(req);
+      const st = state.students[String(b.sid || '')];
+      const ten = String(b.ten || '').trim().slice(0, 60), lop = String(b.lop || '').trim().slice(0, 12), nhom = String(b.nhom || '').trim().slice(0, 8);
+      const name = st ? st.name : (ten + (lop ? ' - ' + lop : ''));
+      if (!name.trim()) return send(res, 400, { error: 'Em nhập họ tên (hoặc vào phòng làm bài trước) rồi gửi lại' });
+      const nb = x => { x = Number(x); return isFinite(x) ? x : 0; };
+      const freqs = (Array.isArray(b.freqs) ? b.freqs : []).slice(0, 10).map(nb);
+      const recs = (Array.isArray(b.records) ? b.records : []).slice(0, 120).map(r => ({ src: Math.max(0, Math.min(10, Math.round(nb(r && r.src)))), dx: nb(r && r.dx), n: Math.max(1, Math.round(nb(r && r.n))), td: nb(r && r.td), Tin: String((r && r.Tin) || '').slice(0, 12), fin: String((r && r.fin) || '').slice(0, 12) }));
+      if (!recs.length) return send(res, 400, { error: 'Em chưa có lần đo nào trong bảng số liệu' });
+      const key = st ? String(b.sid) : 'tn-' + crypto.createHash('sha1').update(name.toLowerCase()).digest('hex').slice(0, 12);
+      state.tn = state.tn || {};
+      if (!state.tn[key] && Object.keys(state.tn).length >= MAX_STUDENTS) return send(res, 429, { error: 'Phòng đã đầy' });
+      state.tn[key] = { name, nhom, inRoom: !!st, at: Date.now(), freqs, forkF: nb(b.forkF) || 440, records: recs };
+      save();
+      return send(res, 200, { ok: true, name });
+    }
     if (req.method === 'POST' && p === '/api/answer') {
       const b = await readJson(req);
       const st = state.students[String(b.sid || '')];
@@ -358,7 +376,7 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'GET' && p === '/api/t/state') {
         const students = {};
         for (const [sid, s] of Object.entries(state.students)) students[sid] = { name: s.name, answers: s.answers, late: lateIds(s) };
-        return send(res, 200, { v: VER, config: Object.assign({}, CFG, { questions: Qs(), released: state.released, closed: state.closed, total: N, settings: settingsOut(), progress: progressInfo(), autoSeq: state.autoSeq }), key: KEY, responses: students });
+        return send(res, 200, { v: VER, config: Object.assign({}, CFG, { questions: Qs(), released: state.released, closed: state.closed, total: N, settings: settingsOut(), progress: progressInfo(), autoSeq: state.autoSeq }), key: KEY, responses: students, tn: state.tn || {} });
       }
       if (req.method === 'POST' && p === '/api/t/ctl') {
         const b = await readJson(req); const a = b.action;
@@ -409,6 +427,7 @@ const server = http.createServer(async (req, res) => {
           state.released += d.ids.length; state.mode = 'batch'; state.drawn = d.ids; state.deSo++;
           state.deThieu = d.short;
         }
+        else if (a === 'tnClear') state.tn = {};
         else if (a === 'reset') { const hist = QT.finish(state); state = { released: 0, closed: 0, order: DEFAULT_ORDER.slice(), students: {}, cap: state.cap, locked: false, mode: state.mode, auto: state.auto, pct: state.pct, runDelay: state.runDelay, autoSeq: state.autoSeq, view: state.view, deSo: 0, closedAt: {} }; QT.ensure(state, hist); }
         else return send(res, 400, { error: 'Lệnh không hợp lệ' });
         save();

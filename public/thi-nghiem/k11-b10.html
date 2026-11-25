@@ -241,6 +241,7 @@ svg #mic{cursor:ew-resize}
    <label>Lớp: <input type="text" id="hsLop" size="6"></label>
    <label>Nhóm: <input type="text" id="hsNhom" size="4"></label>
   </div>
+  <div class="row noprint" style="margin-bottom:6px;align-items:center;gap:8px;flex-wrap:wrap"><button class="btn pri" id="btnGui" type="button">📤 Gửi kết quả cho thầy cô</button><span id="guiTT" class="muted"></span></div>
   <div class="formula" id="formulas"></div>
   <div id="tables"></div>
  </section>
@@ -599,6 +600,23 @@ $('btnChkP').onclick=()=>{const T=P.div*P.td,f=1000/T;const t=num($('pT').value)
  const okT=isFinite(t)&&Math.abs(t-T)/T<=0.02,okF=isFinite(fv)&&Math.abs(fv-f)/f<=0.02;
  $('pRes').innerHTML=`T: <span class="${okT?'good':'badx'}">${okT?'✓ đúng':'✗ chưa đúng'}</span> · f: <span class="${okF?'good':'badx'}">${okF?'✓ đúng':'✗ chưa đúng'}</span>`+
   (okT&&okF?'':`<br><span class="muted">Gợi ý: 1 chu kì chiếm ${fmt(P.div,1)} ô.</span>`);};
+
+/* ================== GỬI KẾT QUẢ VỀ PHÒNG LÀM BÀI ==================
+   Trang này chạy trong phòng làm bài (cùng địa chỉ) nên đọc được mã học sinh 'sid' em đã vào phòng.
+   Gửi bảng số liệu + tần số thật của máy em; gửi lại thì bản mới thay bản cũ. */
+let SID=null;try{SID=localStorage.getItem('sid');}catch(e){}
+if(SID)fetch('/api/state?sid='+encodeURIComponent(SID)).then(r=>r.json()).then(j=>{
+ if(j&&j.mine&&j.mine.name){$('guiTT').textContent='Em đang ở phòng với tên: '+j.mine.name;if(!$('hsTen').value.trim()){$('hsTen').value=j.mine.name;save();}}
+ else SID=null;}).catch(()=>{});
+$('btnGui').onclick=()=>{
+ if(!S.records.length){$('guiTT').textContent='Em chưa có lần đo nào. Đo rồi bấm "＋ Ghi vào bảng" trước.';return;}
+ if(!SID&&!$('hsTen').value.trim()){$('guiTT').textContent='Em nhập họ tên (hoặc vào phòng làm bài trước) rồi gửi.';$('hsTen').focus();return;}
+ $('btnGui').disabled=true;$('guiTT').textContent='Đang gửi…';
+ fetch('/api/tn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:SID||'',ten:$('hsTen').value,lop:$('hsLop').value,nhom:$('hsNhom').value,freqs:S.freqs,forkF:S.forkF,records:S.records})})
+  .then(r=>r.json().then(j=>{if(!r.ok)throw new Error(j.error||'Lỗi '+r.status);return j;}))
+  .then(j=>{const d=new Date();$('guiTT').innerHTML='<span class="good">✓ Đã gửi '+S.records.length+' lần đo lúc '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+' ('+j.name+')</span>. Sửa xong có thể gửi lại.';})
+  .catch(e=>{$('guiTT').innerHTML='<span class="badx">✗ Chưa gửi được: '+e.message+'</span>';})
+  .finally(()=>{$('btnGui').disabled=false;});};
 
 /* ================== GIÁO VIÊN ================== */
 $('btnGv').onclick=()=>{if($('gvPw').value.trim()!=='gv'){$('gvPw').value='';$('gvPw').placeholder='Sai mật khẩu';return;}
